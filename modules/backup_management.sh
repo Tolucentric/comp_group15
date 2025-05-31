@@ -1,7 +1,9 @@
 #!/bin/bash
 source "../utils/logger.sh"
+source "../utils/helpers.sh"
 
 BACKUP_DIR="./backups"
+mkdir -p "$BACKUP_DIR"
 
 function show_header() {
   clear
@@ -11,21 +13,14 @@ function show_header() {
 }
 
 function perform_backup() {
-  read -rp "Enter full path of directory to back up: " source_path
+  read -rp "Enter path to back up: " src
+  validate_directory "$src" || return
 
-  if [[ ! -d "$source_path" ]]; then
-    echo "[!] Directory does not exist."
-    return
-  fi
-
-  mkdir -p "$BACKUP_DIR"
-  filename="$(basename "$source_path")-$(date +%Y%m%d_%H%M%S).tar.gz"
+  filename="$(basename "$src")-$(date +%Y%m%d_%H%M%S).tar.gz"
   target="$BACKUP_DIR/$filename"
-
-  echo "Creating backup: $target"
-  sudo tar -czf "$target" "$source_path"
-  echo "[✓] Backup completed: $target"
-  log_action "Backed up $source_path to $target"
+  sudo tar -czf "$target" "$src"
+  echo "[✓] Backup saved as: $target"
+  log_action "Backup created: $src to $target"
 }
 
 function perform_restore() {
@@ -33,13 +28,13 @@ function perform_restore() {
   echo "Available backups:"
   ls "$BACKUP_DIR"/*.tar.gz 2>/dev/null || { echo "No backups found."; return; }
 
-  read -rp "Enter full name of backup file to restore: " backup_file
-  read -rp "Enter target directory to extract into: " restore_path
-
-  mkdir -p "$restore_path"
-  sudo tar -xzf "$BACKUP_DIR/$backup_file" -C "$restore_path"
-  echo "[✓] Backup restored to: $restore_path"
-  log_action "Restored $backup_file to $restore_path"
+  read -rp "Enter backup file name (only): " file
+  validate_file "$BACKUP_DIR/$file" || return
+  read -rp "Restore to which directory? " dest
+  mkdir -p "$dest"
+  sudo tar -xzf "$BACKUP_DIR/$file" -C "$dest"
+  echo "[✓] Restored to $dest"
+  log_action "Restored $file to $dest"
 }
 
 function backup_menu() {

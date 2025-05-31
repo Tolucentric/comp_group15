@@ -8,66 +8,42 @@ function show_header() {
   echo "----------------------------------------"
 }
 
-function list_log_files() {
+function select_log_file() {
   echo ""
-  echo "  Available Logs:"
-  echo "  1) /var/log/syslog     - General system logs"
-  echo "  2) /var/log/auth.log   - Authentication logs"
-  echo "  3) /var/log/dmesg      - Kernel ring buffer"
-  echo ""
+  echo "  1) /var/log/syslog"
+  echo "  2) /var/log/auth.log"
+  echo "  3) /var/log/dmesg"
+  read -rp "Select a log file [1-3]: " opt
+  case "$opt" in
+    1) echo "/var/log/syslog" ;;
+    2) echo "/var/log/auth.log" ;;
+    3) echo "/var/log/dmesg" ;;
+    *) echo ""; return 1 ;;
+  esac
 }
 
 function view_recent_logs() {
-  list_log_files
-  read -rp "Choose a log file [1-3]: " opt
-  case "$opt" in
-    1) file="/var/log/syslog" ;;
-    2) file="/var/log/auth.log" ;;
-    3) file="/var/log/dmesg" ;;
-    *) echo "[!] Invalid choice."; return ;;
-  esac
-
+  file=$(select_log_file) || { echo "[!] Invalid selection."; return; }
   echo ""
   echo "Last 20 lines of $file:"
-  echo ""
   sudo tail -n 20 "$file"
-  log_action "Viewed last 20 lines from $file"
+  log_action "Viewed $file"
   echo ""
 }
 
 function search_logs_by_keyword() {
-  list_log_files
-  read -rp "Choose a log file [1-3]: " opt
-  case "$opt" in
-    1) file="/var/log/syslog" ;;
-    2) file="/var/log/auth.log" ;;
-    3) file="/var/log/dmesg" ;;
-    *) echo "[!] Invalid choice."; return ;;
-  esac
-
-  read -rp "Enter keyword to search: " keyword
+  file=$(select_log_file) || { echo "[!] Invalid selection."; return; }
+  read -rp "Enter keyword: " keyword
   echo ""
-  echo "Matches for '$keyword' in $file:"
-  echo ""
-  sudo grep -i --color=always "$keyword" "$file" | tail -n 20
-  log_action "Searched logs in $file for keyword: $keyword"
+  sudo grep -i "$keyword" "$file" | tail -n 20
+  log_action "Searched $file for $keyword"
   echo ""
 }
 
 function tail_live_logs() {
-  list_log_files
-  read -rp "Choose a log file [1-3]: " opt
-  case "$opt" in
-    1) file="/var/log/syslog" ;;
-    2) file="/var/log/auth.log" ;;
-    3) file="/var/log/dmesg" ;;
-    *) echo "[!] Invalid choice."; return ;;
-  esac
-
-  echo ""
-  echo "Tailing $file (Press Ctrl+C to stop)"
-  echo ""
-  log_action "Tailing live logs from $file"
+  file=$(select_log_file) || { echo "[!] Invalid selection."; return; }
+  echo "Tailing $file (Ctrl+C to stop)"
+  log_action "Live tailed $file"
   sudo tail -f "$file"
 }
 
@@ -75,9 +51,9 @@ function log_menu() {
   while true; do
     show_header
     echo "Options:"
-    echo " [1] View Recent Log Entries"
+    echo " [1] View Recent Logs"
     echo " [2] Search Logs by Keyword"
-    echo " [3] Tail Logs in Real Time"
+    echo " [3] Tail Logs Live"
     echo " [4] Back to Dashboard"
     echo "----------------------------------------"
     read -rp "Choose an option [1-4]: " option
